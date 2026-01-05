@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<!--
+  Circuit Solving Demo - VR Experience
+  ------------------------------------
+  Purpose:
+    - Standalone marketing/UX page showcasing the "Circuit Solving" feature.
+    - Presents a hero section describing the demo plus interactive SVG
+      "circuit components" and difficulty selector buttons.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Enable responsive layout for desktop and mobile users -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Solving Demo - VR Experience</title>
+    <!-- Orbitron font for a sci‑fi, technical aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@100;200;300;400;600&display=swap" rel="stylesheet">
+    <!-- Page-level styling for layout, typography, and circuit visuals -->
+    <style>
+        /* Global reset and consistent sizing */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Dark, high-contrast base for the demo */
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Root wrapper for the entire page content */
+        .circuit-demo-container {
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle animated/grid-like background behind the content */
+        .circuit-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.02) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.02) 0%, transparent 50%),
+                linear-gradient(45deg, rgba(255,255,255,0.01) 1px, transparent 1px),
+                linear-gradient(-45deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        /* Sticky header with title + back navigation */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: clamp(1rem, 2vw, 2rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+
+        /* "CIRCUIT DEMO" logo styling */
+        .logo {
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            font-weight: 400;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Link that returns to the main index page */
+        .back-button {
+            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(1rem, 2vw, 1.5rem);
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 25px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Central content area containing text + visual preview */
+        .main-content {
+            padding-top: clamp(6rem, 10vw, 8rem);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(2rem, 4vw, 4rem);
+        }
+
+        /* Left-side column: descriptive text and feature list */
+        .demo-info {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: clamp(2rem, 4vw, 4rem);
+        }
+
+        /* Small pill-shaped badge above the title */
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 2vw, 1.2rem);
+            background: rgba(255,255,255,0.05);
+            border-radius: 25px;
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+            font-weight: 500;
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            letter-spacing: 0.5px;
+        }
+
+        /* Main "CIRCUIT SOLVING" heading */
+        .demo-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            margin-bottom: clamp(1rem, 2vw, 1.5rem);
+            color: #ffffff;
+            font-weight: 200;
+            line-height: 1.1;
+            letter-spacing: 3px;
+        }
+
+        /* Subtitle describing the experience type */
+        .demo-subtitle {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
+            color: #cccccc;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* Paragraph describing the VR circuit demo */
+        .demo-description {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            margin-bottom: clamp(2rem, 4vw, 3rem);
+            color: #999999;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        /* Grid of individual feature items */
+        .demo-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: clamp(1rem, 2vw, 1.5rem);
+            margin-bottom: clamp(2rem, 4vw, 3rem);
+        }
+
+        /* Each feature row (icon + text) */
+        .demo-feature {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1vw, 0.8rem);
+            padding: clamp(0.8rem, 1.5vw, 1rem) clamp(1.2rem, 2vw, 1.5rem);
+            background: rgba(255,255,255,0.03);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .demo-feature:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateY(-2px);
+        }
+
+        .demo-feature span {
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            font-weight: 400;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        /* Primary/secondary call-to-action button row */
+        .demo-actions {
+            display: flex;
+            gap: clamp(1rem, 2vw, 1.5rem);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Base button style shared by primary/secondary CTAs */
+        .demo-button {
+            padding: clamp(0.8rem, 2vw, 1.2rem) clamp(1.5rem, 3vw, 2.5rem);
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            font-weight: 400;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+
+        .demo-button.primary {
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 4px 20px rgba(255,255,255,0.2);
+        }
+
+        .demo-button.secondary {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255,255,255,0.3);
+        }
+
+        /* Right-side column that contains the visual "circuit board" */
+        .circuit-preview {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Card-like container for the animated circuit representation */
+        .circuit-board {
+            width: clamp(300px, 50vw, 500px);
+            height: clamp(300px, 50vw, 500px);
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        /* Decorative connecting lines overlaid on the circuit board */
+        .circuit-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .circuit-line {
+            position: absolute;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .circuit-line:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            width: 30%;
+            height: 2px;
+        }
+
+        .circuit-line:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            width: 25%;
+            height: 2px;
+        }
+
+        .circuit-line:nth-child(3) {
+            bottom: 30%;
+            left: 20%;
+            width: 35%;
+            height: 2px;
+        }
+
+        /* Flexible layout for individual SVG circuit components */
+        .circuit-components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(1rem, 2vw, 1.5rem);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .circuit-component {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .circuit-component:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* Fixed difficulty selector bar docked at bottom-center */
+        .difficulty-selector {
+            position: fixed;
+            bottom: clamp(2rem, 4vw, 3rem);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: clamp(0.5rem, 1vw, 1rem);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: clamp(0.8rem, 1.5vw, 1rem);
+            border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .difficulty-button {
+            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(1rem, 2vw, 1.5rem);
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+        }
+
+        .difficulty-button.active {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .difficulty-button:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* Responsive tweaks for tablet layouts */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .demo-features {
+                grid-template-columns: 1fr;
+            }
+
+            .demo-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .circuit-board {
+                width: 250px;
+                height: 250px;
+            }
+        }
+
+        /* Further adjustments for small mobile screens */
+        @media (max-width: 480px) {
+            .demo-title {
+                font-size: 2rem;
+            }
+
+            .demo-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .circuit-board {
+                width: 200px;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="circuit-demo-container">
+        <div class="circuit-background"></div>
+
+        <!-- Top header with logo and link back to the main experience -->
+        <header class="header">
+            <div class="logo">CIRCUIT DEMO</div>
+            <a href="./index.html" class="back-button">← Back to Main</a>
+        </header>
+
+        <!-- Main 2-column layout: description + interactive preview -->
+        <main class="main-content">
+            <div class="demo-info">
+                <div class="demo-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#00ff88"/>
+                    </svg>
+                    <span>Interactive Circuit Solving</span>
+                </div>
+
+                <h1 class="demo-title">CIRCUIT SOLVING</h1>
+                <h2 class="demo-subtitle">Interactive Electrical Puzzles</h2>
+
+                <p class="demo-description">
+                    Experience our cutting-edge circuit solving technology in virtual reality.
+                    Test your electrical engineering skills with interactive 3D circuit puzzles
+                    that respond to your actions in real-time with immersive 3D effects.
+                </p>
+
+                <!-- Highlighted bullet list of feature capabilities -->
+                <div class="demo-features">
+                    <div class="demo-feature">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#00ff88"/>
+                        </svg>
+                        <span>Real-time Circuit Simulation</span>
+                    </div>
+                    <div class="demo-feature">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#00ff88"/>
+                        </svg>
+                        <span>Interactive 3D Components</span>
+                    </div>
+                    <div class="demo-feature">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#00ff88"/>
+                        </svg>
+                        <span>VR-Compatible Controls</span>
+                    </div>
+                    <div class="demo-feature">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#00ff88"/>
+                        </svg>
+                        <span>Multiple Difficulty Levels</span>
+                    </div>
+                </div>
+
+                <!-- Primary actions for starting demo / opening VR flow -->
+                <div class="demo-actions">
+                    <button class="demo-button primary" onclick="startCircuitDemo()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                        </svg>
+                        START DEMO
+                    </button>
+                    <button class="demo-button secondary" onclick="openVRExperience()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="currentColor"/>
+                        </svg>
+                        VR EXPERIENCE
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual representation of circuit components on a board -->
+            <div class="circuit-preview">
+                <div class="circuit-board">
+                    <div class="circuit-lines">
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                    </div>
+                    <div class="circuit-components">
+                        <div class="circuit-component" onclick="interactComponent(this)">
+                            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                                <rect x="15" y="15" width="50" height="50" rx="6" stroke="#00ff88" strokeWidth="3" fill="none"/>
+                                <circle cx="25" cy="25" r="4" fill="#00ff88"/>
+                                <circle cx="55" cy="55" r="4" fill="#00ff88"/>
+                                <path d="M25 25L55 55" stroke="#00ff88" strokeWidth="3"/>
+                            </svg>
+                        </div>
+                        <div class="circuit-component" onclick="interactComponent(this)">
+                            <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
+                                <circle cx="35" cy="35" r="25" stroke="#ff6b6b" strokeWidth="3" fill="none"/>
+                                <path d="M20 35L35 50L50 20" stroke="#ff6b6b" strokeWidth="3"/>
+                            </svg>
+                        </div>
+                        <div class="circuit-component" onclick="interactComponent(this)">
+                            <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                                <rect x="8" y="8" width="44" height="44" rx="4" stroke="#4ecdc4" strokeWidth="3" fill="none"/>
+                                <circle cx="20" cy="20" r="3" fill="#4ecdc4"/>
+                                <circle cx="40" cy="40" r="3" fill="#4ecdc4"/>
+                            </svg>
+                        </div>
+                        <div class="circuit-component" onclick="interactComponent(this)">
+                            <svg width="75" height="75" viewBox="0 0 75 75" fill="none">
+                                <polygon points="37.5,15 60,35 37.5,55 15,35" stroke="#ffd93d" strokeWidth="3" fill="none"/>
+                                <circle cx="37.5" cy="35" r="10" fill="#ffd93d" opacity="0.3"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Difficulty selection bar: easy, medium, hard -->
+        <div class="difficulty-selector">
+            <button class="difficulty-button active" onclick="setDifficulty('easy')">Easy</button>
+            <button class="difficulty-button" onclick="setDifficulty('medium')">Medium</button>
+            <button class="difficulty-button" onclick="setDifficulty('hard')">Hard</button>
+        </div>
+    </div>
+
+    <!-- Minimal interactivity to animate components and manage difficulty state -->
+    <script>
+        function interactComponent(element) {
+            element.style.transform = 'scale(1.2) rotate(5deg)';
+            element.style.filter = 'brightness(1.5)';
+            
+            setTimeout(() => {
+                element.style.transform = 'scale(1) rotate(0deg)';
+                element.style.filter = 'brightness(1)';
+            }, 300);
+        }
+
+        function setDifficulty(level) {
+            const buttons = document.querySelectorAll('.difficulty-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            console.log('Difficulty set to:', level);
+        }
+
+        // Placeholders for integrating with the full VR app; currently no-op.
+        function startCircuitDemo() {
+         
+        }
+
+        function openVRExperience() {
+       
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add some interactive animations to components on load
+            const components = document.querySelectorAll('.circuit-component');
+            components.forEach((component, index) => {
+                component.style.animationDelay = `${index * 0.2}s`;
+                component.style.animation = 'pulse 2s ease-in-out infinite';
+            });
+        });
+    </script>
+</body>
+</html> 

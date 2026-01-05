@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+  Main HTML entry point for the VR Experience React application.
+  This file:
+    - Loads base fonts and icon set
+    - Defines a dark sci‑fi themed shell
+    - Provides the #root container where the SPA is mounted
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensure responsive layout across devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>VR Experience</title>
+
+    <!-- Font Awesome icon set for UI icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+
+    <!-- Orbitron font for retro‑futuristic headings/body text -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    >
+
+    <!-- Minimal global styles; the bulk of styling is handled by the SPA -->
+    <style>
+        /* Reset default browser spacing and unify box sizing */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Base page styling – dark background and neon text palette */
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        /* React root container, taking full viewport height */
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        /* Enable smooth scrolling for in‑page navigation */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Neon‑styled custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #00ffff;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff00ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Root element where the React/Vite app will render -->
+    <div id="root"></div>
+    
+    <!-- Main front‑end bundle (Vite entry) -->
+    <script type="module" src="./webfiles/main.jsx"></script>
+</body>
+</html> 

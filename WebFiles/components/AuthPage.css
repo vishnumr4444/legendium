@@ -1,0 +1,429 @@
+/* AuthPage.css
+   Visual design for the full-screen login/register overlay:
+   - Blurred background gradient and cover image
+   - SVG-masked glass card split into left (marketing) and right (form) panels
+   - Neumorphic inputs, buttons, and close icon
+   - Mobile fallback layout without complex masking
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Libertinus+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Manrope:wght@200..800&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css');
+
+/* --- 1. Full-screen Background --- */
+.auth-bg-gradient {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 3000;
+  width: 100vw;
+  height: 100vh;
+  /* Updated to use an image background that covers the screen */
+  background-image: url('/public/covervr.png');
+  background-size: 115% 105%; /* ✅ fixes 1px edges without ugly stretching */
+  background-position: center;
+  background-repeat: no-repeat;
+  background:linear-gradient(to bottom, #0e1314, #022d34);
+}
+
+/* --- 2. The SVG Card Container (NOW A MASK) --- */
+.auth-svg-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3100;
+  width: 1000px;
+  height: 580px;
+  max-width: 95vw;
+  max-height: 85vh;
+  
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1089 565' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M31.954 285.948 68.448 326.514c5.12 5.692 7.953 13.077 7.953 20.733v146.732c0 17.121 13.934 31.059 31.055 31.059h926.5c17.118 0 31.045-13.938 31.045-31.059V146.004c0-6.266-1.9-12.385-5.45-17.55L1026.63 80.52c-5.78-8.419-15.34-13.45-25.55-13.45H720.487c-8.338 0-16.324-3.359-22.156-9.318l-39.57-39.57c-5.843-5.971-13.85-9.33-22.205-9.317L54.95 8.93C37.85 8.958 24 22.828 24 39.93v225.285c0 7.656 2.833 15.041 7.954 20.733Z' fill='white'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1089 565' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M31.954 285.948 68.448 326.514c5.12 5.692 7.953 13.077 7.953 20.733v146.732c0 17.121 13.934 31.059 31.055 31.059h926.5c17.118 0 31.045-13.938 31.045-31.059V146.004c0-6.266-1.9-12.385-5.45-17.55L1026.63 80.52c-5.78-8.419-15.34-13.45-25.55-13.45H720.487c-8.338 0-16.324-3.359-22.156-9.318l-39.57-39.57c-5.843-5.971-13.85-9.33-22.205-9.317L54.95 8.93C37.85 8.958 24 22.828 24 39.93v225.285c0 7.656 2.833 15.041 7.954 20.733Z' fill='white'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(1, 227, 210, 0.4)) drop-shadow(0 0 15px rgba(35, 175, 247, 0.3));
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 0;
+  box-sizing: border-box; 
+  color: #ffffff; 
+  font-family: 'Manrope', Arial, sans-serif;
+}
+
+.auth-svg-card .auth-left {
+  flex: 1.1; /* <<< Made larger */
+  /* Background image is now ON THE PANEL, not a ::before */
+  background-image: url('/covervr.png');
+  background-size: cover;
+  background-position: center;
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden; /* Good practice */
+}
+
+/* REMOVED .auth-left::before rule */
+
+.auth-svg-card .auth-left h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  text-align: center;
+  /* Removed z-index and position */
+}
+.auth-svg-card .auth-left p {
+  font-size: 0.9rem;
+  margin-bottom: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  /* Removed z-index and position */
+}
+.auth-svg-card .auth-right {
+  flex: 0.9; /* <<< Made smaller */
+  /* Metallic gradient background */
+  background-image: linear-gradient(to bottom, #28313B, #121212 50%, #28313B);
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* <<< CHANGED FROM flex-start */
+  /* --- PADDING ADJUSTED FOR SVG SHAPE & NARROWER CONTENT --- */
+  padding: 2.5rem 4.5rem 2.5rem 3.5rem; /* T-R-B-L */
+  position: relative;
+  max-height: 100%;
+  
+  /* --- FIX FOR OVERFLOW --- */
+  overflow-y: auto; /* Allow vertical scrolling */
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none;  /* Hide scrollbar for IE/Edge */
+}
+
+/* Hide scrollbar for WebKit browsers */
+.auth-svg-card .auth-right::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* --- 3. Form Content (Simplified for Right Panel) --- */
+
+/* --- NEW 3D METALLIC PROJECTED CLOSE BUTTON --- */
+.auth-svg-card .auth-right .authpage-close {
+  position: absolute;
+  top: 6.5rem;
+  right: 4.5rem;
+
+  /* --- Neumorphism Base --- */
+  width: 34px;
+  height: 34px;
+  border-radius: 50%; /* Keep it circular */
+  /* IMPORTANT: Set this to match the background of .auth-right */
+  background-color: #2e2e2e; /* Example: A medium-dark grey */
+  border: none; /* Neumorphism usually avoids hard borders */
+
+  /* Neumorphic Shadows (Adjust colors based on background) */
+  box-shadow:
+    /* Light shadow (top-left) - slightly lighter than background */
+    -3px -3px 6px rgba(185, 180, 180, 0.05),
+    /* Dark shadow (bottom-right) - slightly darker than background */
+    3px 3px 6px rgba(18, 17, 17, 0.205);
+
+  /* --- Text/Icon Styling --- */
+  color: #a0a0a0; /* Softer color for neumorphism */
+  font-size: 1.3rem; /* Slightly smaller icon might look better */
+  font-weight: 400; /* Regular weight often fits neumorphism */
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  /* --- Interaction --- */
+  cursor: pointer;
+  opacity: 1; /* Usually fully opaque */
+  transition: box-shadow 0.2s ease-out, transform 0.1s ease-out; /* Smooth shadow/transform transitions */
+  z-index: 2;
+}
+
+.auth-svg-card .auth-right .authpage-close:hover {
+  /* Optional: Subtle lift or slight shadow change on hover */
+   transform: translateY(-1px);
+  /* Or make shadows slightly more pronounced */
+  /* box-shadow:
+    -4px -4px 8px rgba(255, 255, 255, 0.06),
+    4px 4px 8px rgba(0, 0, 0, 0.5); */
+}
+
+.auth-svg-card .auth-right .authpage-close:active {
+  /* Neumorphic "Pressed In" Effect */
+  box-shadow:
+    /* Inset dark shadow (top-left) */
+    inset -3px -3px 6px rgba(0, 0, 0, 0.4),
+    /* Inset light shadow (bottom-right) */
+    inset 3px 3px 6px rgba(255, 255, 255, 0.05);
+  transform: translateY(1px); /* Optional: Slight press down */
+  color: #ffffff; /* Make icon brighter when pressed */
+  filter: none; /* Remove previous brightness filter */
+  opacity: 1;
+}
+/* --- END NEW CLOSE BUTTON --- */
+
+
+.auth-svg-card .auth-right h2 {
+  color: #ffffff;
+  font-size: 1.5rem; /* Shrunk */
+  font-weight: 700;
+  margin-bottom: 0.6rem; /* Shrunk */
+  margin-top: 0; /* Let container padding handle it */
+  text-align: center;
+}
+
+.auth-svg-card .auth-right .auth-social-row {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0.4rem; /* Shrunk */
+}
+
+.auth-svg-card .auth-right .auth-or {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.3rem 0; /* Shrunk */
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+/* --- 4. Simplified Input & Button Styles (Basic Dark Theme) --- */
+
+/* Base styles for both forms */
+.auth-svg-card .auth-right .auth-login-form,
+.auth-svg-card .auth-right .auth-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem; /* Shrunk */
+  width: 100%;
+  max-width: 100%;
+  align-items: center;
+}
+
+/* Neumorphism black metallic style for ALL inputs (email, password, etc.) in the right panel */
+.auth-svg-card .auth-right input {
+  width: 100%;
+  background: linear-gradient(145deg, #2a2a2a, #1e1e1e) !important; /* Force metallic dark gradient */
+  border: none; /* No hard border */
+  outline: none;
+  color: #fff;
+  padding: 0.7rem 1rem; /* Shrunk */
+  font-size: 0.9rem; /* Shrunk */
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  /* Subtle inner neumorphism: no outer projection, just depressed metallic */
+  box-shadow: 
+    inset 2px 2px 4px rgba(0, 0, 0, 0.6), /* Inner dark grey */
+    inset -2px -2px 4px rgba(60, 60, 60, 0.3); /* Inner light grey highlight */
+}
+
+/* Force dark metallic background on autofill (pasting/frequent phrases) for ALL inputs */
+.auth-svg-card .auth-right input:-webkit-autofill,
+.auth-svg-card .auth-right input:-webkit-autofill:hover,
+.auth-svg-card .auth-right input:-webkit-autofill:focus,
+.auth-svg-card .auth-right input:-webkit-autofill:active {
+  -webkit-box-fill: linear-gradient(145deg, #2a2a2a, #1e1e1e) !important; /* Chrome/Safari autofill fix */
+  background: linear-gradient(145deg, #2a2a2a, #1e1e1e) !important; /* Fallback */
+  -webkit-text-fill-color: #fff !important; /* Keep white text */
+  transition: background-color 5000s ease-in-out 0s !important; /* Prevent flash */
+  box-shadow: 
+    inset 2px 2px 4px rgba(0, 0, 0, 0.6), /* Maintain inner shadows */
+    inset -2px -2px 4px rgba(60, 60, 60, 0.3);
+}
+
+.auth-svg-card .auth-right input:focus {
+  /* Focus: subtle inner glow with grey/black only, no outer projection */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.8), /* Deeper inner dark */
+    inset -1px -1px 2px rgba(70, 70, 70, 0.4); /* Brighter inner grey */
+  background: linear-gradient(145deg, #2e2e2e, #222222) !important; /* Slight metallic shift, force it */
+}
+.auth-svg-card .auth-right input::placeholder {
+  color: rgba(255, 255, 255, 0.753);
+}
+
+/* Password Wrapper in Right Panel */
+.auth-svg-card .auth-right .auth-password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.auth-svg-card .auth-right .auth-password-wrapper input {
+  padding-right: 2.8rem; 
+}
+
+.auth-svg-card .auth-right .toggle-password-btn {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0;
+  line-height: 1;
+}
+.auth-svg-card .auth-right .toggle-password-btn:hover {
+  color: #fff;
+}
+
+/* Reversed neumorphism black metallic style for buttons in the right panel (enhanced inner for more "inside" feel) */
+.auth-svg-card .auth-right .auth-signin-btn,
+.auth-svg-card .auth-right .auth-signup-btn {
+  width: 30%;
+  background: linear-gradient(145deg, #2a2a2a, #1e1e1e); /* Metallic dark gradient */
+  border: none; /* No hard border */
+  outline: none;
+  color: #fff;
+  padding: 0.7rem; /* Shrunk */
+  font-size: 0.9rem; /* Shrunk */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1.5rem; /* <<< ADDED THIS LINE FOR SPACE */
+  /* Enhanced reversed base: deeper concave (stronger inset shadows) for more pressed-in metallic feel */
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.7), /* Deeper inner dark grey */
+    inset -4px -4px 8px rgba(40, 40, 40, 0.5); /* Stronger inner light grey */
+}
+
+.auth-svg-card .auth-right .auth-signin-btn:hover,
+.auth-svg-card .auth-right .auth-signup-btn:hover {
+  /* Hover: reverse to convex projection with outer grey/black shadows (lift effect) */
+  transform: translateY(-1px);
+  box-shadow: 
+    5px 5px 10px rgba(0, 0, 0, 0.5), /* Outer dark grey shadow */
+    -5px -5px 10px rgba(0, 0, 0, 0.716), /* Outer light grey highlight */
+    inset 1px 1px 2px rgba(0, 0, 0, 0.3), /* Subtle inner dark */
+    inset -1px -1px 2px rgba(32, 31, 31, 0.451); /* Subtle inner grey */
+  background: linear-gradient(145deg, #2e2e2e, #222222); /* Slight metallic shift */
+  color: #fff; /* Keep white text */
+}
+
+.auth-svg-card .auth-right .auth-signin-btn:disabled,
+.auth-svg-card .auth-right .auth-signup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  /* Flatter inset for disabled */
+  box-shadow: 
+    inset 2px 2px 4px rgba(0, 0, 0, 0.4), /* Mild inner dark grey */
+    inset -2px -2px 4px rgba(40, 40, 40, 0.2); /* Mild inner light grey */
+}
+
+/* --- 5. Other Text Styles in Right Panel --- */
+.auth-svg-card .auth-right .auth-toggle-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.4rem; /* Shrunk */
+  text-align: center;
+}
+.auth-svg-card .auth-right .auth-toggle-text span {
+  font-weight: 600;
+  cursor: pointer;
+  color: #01E3D2;
+}
+.auth-svg-card .auth-right .auth-toggle-text span:hover {
+  text-decoration: underline;
+}
+
+.auth-svg-card .auth-right .authpage-error {
+  color: #ff8a8a;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+.auth-svg-card .auth-right .authpage-info {
+  color: #4ee4dc;
+  background: rgba(78, 205, 196, 0.1);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --- 6. Responsive Fallback (Stack Vertically on Mobile) --- */
+@media (max-width: 900px) {
+  .auth-svg-card {
+    /* Disable mask */
+    -webkit-mask-image: none;
+    mask-image: none;
+    
+    /* Use a simple gradient instead */
+    background-image: linear-gradient(140deg, #0B1D1E 0%, #121212 100%);
+    border-radius: 1.5rem;
+    filter: drop-shadow(0 8px 40px rgba(0,0,0,0.3)); /* SVG-only shadow on mobile too */
+    
+    width: 95vw;
+    height: auto; /* Let content define height */
+    min-height: auto; 
+    flex-direction: column; /* Stack vertically on mobile */
+    padding: 0; /* Reset padding */
+  }
+
+  .auth-svg-card .auth-left {
+    flex: none;
+    padding: 1.5rem;
+    order: 1; /* Left (image) on top on mobile */
+    background-image: none; /* Hide image on mobile stack */
+    /* Add a pseudo-element for rounded corners if needed, but simple is better */
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+
+  .auth-svg-card .auth-right {
+    flex: none;
+    padding: 1.5rem;
+    order: 2; /* Right (content) below on mobile */
+    background-image: none; /* Already transparent, but good to be explicit */
+  }
+
+  .auth-svg-card .auth-left h2 {
+    font-size: 1.5rem;
+  }
+
+  .auth-svg-card .auth-right h2 {
+    font-size: 1.4rem;
+  }
+
+  .auth-svg-card .auth-right .auth-social-row {
+    gap: 0.6rem;
+  }
+
+  .auth-svg-card .auth-right input,
+  .auth-svg-card .auth-right .auth-signin-btn,
+  .auth-svg-card .auth-right .auth-signup-btn {
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<!--
+    scene-select.html
+    -----------------
+    UI for selecting which scene/level the player will enter.
+    - Shows scene cards (locked/unlocked/completed)
+    - Reads/writes progress to localStorage and (if available) Firestore
+    - Redirects to `experience.html` when a scene is chosen
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Select Scene</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/neotrax');
+        /* Page / global layout */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #f5fef8;
+            background-image: url('/covervr.png');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: 115% 115%;
+            background-color: #0000003c;
+        }
+        /* The translucent card that contains the UI */
+        .card {
+            position: relative;
+            background: rgba(219, 218, 218, 0.005);
+            border-radius: 24px;
+            padding: 28px;
+            width: 90%;
+            height: 90%;
+            max-width: 1200px;
+            max-height: 95%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            z-index: 1;
+            overflow: hidden;
+        }
+        .head {
+            text-align: center;
+        }
+        .head h2 {
+            font-size: 2rem;
+            margin: 0;
+            color: #00eeff;
+        }
+        .head p {
+            margin-top: 6px;
+            opacity: 0.85;
+            font-size: 1rem;
+        }
+        /* Grid of scene "cards" */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin: 24px auto;
+            width: 100%;
+            max-width: 1100px;
+        }
+        /* Individual scene card styles - locked/unlocked/selected states */
+        .scene {
+            position: relative;
+            border-radius: 18px;
+            padding: 26px 18px;
+            background: rgba(0, 0, 12, 0.7);
+            backdrop-filter: blur(1px);
+            border: 0.5px solid rgba(255, 252, 252, 0.475);
+            text-align: center;
+            cursor: pointer;
+            transition: border 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+            color: #1dbccb;
+        }
+        .scene.unlocked {
+            border: 0.5px solid rgba(140, 134, 134, 0.274);
+        }
+        .scene.unlocked:hover::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(120deg, #19f0f4, #00fbff, #00ffee);
+            background-size: 200% 200%;
+            animation: borderGlow 6s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        .scene.unlocked:hover {
+            box-shadow: 0 0 14px rgba(147,51,234,0.4), 0 0 14px rgba(34,197,94,0.4);
+        }
+        .scene.selected::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 2px;
+            background: linear-gradient(120deg, #19f0f4, #00fbff, #00ffee);
+            background-size: 200% 200%;
+            animation: borderGlow 6s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        .scene.selected {
+            transform: scale(1.05);
+            z-index: 2;
+            background: linear-gradient(120deg, #007166, #00a0b8ba, #036e72);
+        }
+        .scene.locked {
+            opacity: 0.5;
+            filter: grayscale(0.4);
+            cursor: not-allowed;
+        }
+        .scene .badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #09daf1;
+        }
+        .scene .title {
+            font-size: 1.05rem;
+            font-weight: 400;
+            color: #fff;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+            margin-bottom: 4px;
+        }
+        .status {
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+        .scene.locked .status {
+            color: #ef4444;
+            font-size: 1.3rem;
+        }
+        .scene.running .status {
+            color: #ffd900;
+        }
+        .scene.completed .status {
+            color: #34d399;
+        }
+        .scene.selected::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+            border: 2px solid #bc9cbe;
+            animation: pulseRing 1.8s infinite;
+        }
+        .scene.newly-unlocked {
+            animation: unlockPulse 1.4s ease-in-out 3;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.35), 0 0 45px rgba(0, 255, 255, 0.15);
+            border-color: rgba(0, 255, 255, 0.8);
+        }
+        /* Action buttons (e.g., Start Fresh) */
+        .actions {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .btn {
+            padding: 12px 28px;
+            font-weight: 700;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .btn.primary {
+            box-shadow: 0 6px 22px rgba(13, 1, 24, 0.8);
+            background: linear-gradient(135deg, #01E3D2 0%, #23AFF7 100%);
+            color: #000000;
+            font-family: 'Neotrax', sans-serif;
+        }
+        .btn.primary:hover:not(:disabled) {
+            transform: scale(1.01);
+            box-shadow: 0 6px 22px rgba(13, 1, 24, 0.6);
+            background: linear-gradient(135deg, #000000 0%, #010e14 100%);
+            color: #ffffff;
+            border: 1px solid rgba(0, 242, 255, 0.999);
+        }
+        .btn.primary:disabled {
+            background: #1a1a1a;
+            color: #6a6a6a;
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes pulseRing {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.15); }
+        }
+        @keyframes unlockPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #helper {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #c7f9e7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication loading overlay (hidden after auth check) -->
+    <div id="auth-loading" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0b0b0c;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        color: #f5fef8;
+        font-family: 'Neotrax', sans-serif;
+    ">
+        <div style="
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(147, 51, 234, 0.3);
+            border-top: 3px solid #9333ea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Checking Authentication</div>
+        <div style="font-size: 14px; opacity: 0.7;">Please wait...</div>
+    </div>
+    <!-- Main content wrapper -->
+    <div class="wrap">
+        <div class="card">
+            <div class="head">
+                <h2>Select Scene</h2>
+                <p>Only explored scenes are unlocked. Click one to enter.</p>
+            </div>
+            <div id="grid" class="grid">
+                <!-- Each `.scene` element represents a selectable scene.
+                     `data-scene` should match keys used in saved progress (e.g., "scene1"). -->
+                <div class="scene locked" data-scene="scene1">
+                    <div class="badge">Scene 1</div>
+                    <div class="title">Mystical Forest</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene2">
+                    <div class="badge">Scene 2</div>
+                    <div class="title">Futuristic City</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene3">
+                    <div class="badge">Scene 3</div>
+                    <div class="title">Robotics University</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene4">
+                    <div class="badge">Scene 4</div>
+                    <div class="title">Underground Lab</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene5">
+                    <div class="badge">Scene 5</div>
+                    <div class="title">Robotic Assembly</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene6">
+                    <div class="badge">Scene 6</div>
+                    <div class="title">Component Lesson</div>
+                    <div class="status"></div>
+                </div>
+                <div class="scene locked" data-scene="scene7">
+                    <div class="badge">Scene 7</div>
+                    <div class="title">Robot building</div>
+                    <div class="status"></div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="startFresh" class="btn primary" style="display:none;">Start at Scene 1</button>
+            </div>
+            <div id="helper" class="helper"></div>
+        </div>
+    </div>
+    <script type="module">
+        // Firebase SDK imports (used only for user-specific saved progress)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+        import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-ldTZ0guWYwolDXmry4cWGWSVIUrtNOo",
+            authDomain: "legendium-2fbb6.firebaseapp.com",
+            projectId: "legendium-2fbb6",
+            storageBucket: "legendium-2fbb6.firebasestorage.app",
+            messagingSenderId: "1080832705555",
+            appId: "1:1080832705555:web:2cdc521dfd5821efe8ebe6",
+            measurementId: "G-JTE4VCMGYS"
+        };
+        // Initialize Firebase app and services
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => Array.from(document.querySelectorAll(s));
+        const hoverSound = new Audio('/sounds/mouse-hover.mp3');
+        const clickSound = new Audio('/sounds/mouse-click.mp3');
+        function playHover() {
+            hoverSound.currentTime = 0;
+            hoverSound.play().catch(() => {});
+        }
+        function playClick() {
+            clickSound.currentTime = 0;
+            clickSound.play().catch(() => {});
+        }
+        function applyLocks(scenesVisited, scenesCompleted) {
+            // Apply lock/unlock visual state to each scene card.
+            // Accepts objects that map scene keys (e.g., { scene1: true })
+            const cards = $$('#grid .scene');
+            let unlocked = 0;
+            let localVisitedScenes = {};
+            let localCompletedScenes = {};
+            try {
+                const localVisitedData = localStorage.getItem('visitedScenes');
+                if (localVisitedData) {
+                    localVisitedScenes = JSON.parse(localVisitedData);
+                }
+                const localCompletedData = localStorage.getItem('completedScenes');
+                if (localCompletedData) {
+                    localCompletedScenes = JSON.parse(localCompletedData);
+                }
+            } catch (e) {
+                console.warn('Error parsing localStorage:', e);
+            }
+            const hasFirebaseVisited = scenesVisited && typeof scenesVisited === 'object';
+            const hasFirebaseCompleted = scenesCompleted && typeof scenesCompleted === 'object';
+
+            const allVisitedScenes = hasFirebaseVisited ? scenesVisited : localVisitedScenes;
+            const allCompletedScenes = hasFirebaseCompleted ? scenesCompleted : localCompletedScenes;
+            cards.forEach(card => {
+                const key = card.getAttribute('data-scene');
+                const isVisited = Boolean(allVisitedScenes?.[key]);
+                const isCompleted = Boolean(allCompletedScenes?.[key]);
+                const isUnlocked = isVisited || isCompleted;
+                card.classList.toggle('unlocked', isUnlocked);
+                card.classList.toggle('locked', !isUnlocked);
+                card.classList.toggle('running', isVisited && !isCompleted);
+                card.classList.toggle('completed', isCompleted);
+                const statusEl = card.querySelector('.status');
+                if (statusEl) {
+                    if (isCompleted) {
+                        statusEl.innerHTML = 'Completed';
+                    } else if (isVisited) {
+                        statusEl.innerHTML = 'In Progress';
+                    } else {
+                        statusEl.innerHTML = '🔒';
+                    }
+                }
+                if (isUnlocked) unlocked++;
+            });
+            return unlocked;
+        }
+        function initializeUI(scenesVisited = {}, scenesCompleted = {}, options = {}) {
+            // Build and wire up the UI based on visited/completed data
+            const helper = $('#helper');
+            const startFresh = $('#startFresh');
+            const cards = $$('#grid .scene');
+            const highlightScene = options.highlightScene || null;
+
+            const mergedVisited = { ...scenesVisited };
+            const mergedCompleted = { ...scenesCompleted };
+
+            if (highlightScene && !mergedVisited[highlightScene] && !mergedCompleted[highlightScene]) {
+                mergedVisited[highlightScene] = true;
+            }
+
+            let unlockedCount = applyLocks(mergedVisited, mergedCompleted);
+
+            // Clear any previous selection
+            cards.forEach(c => c.classList.remove('selected', 'newly-unlocked'));
+
+            if (unlockedCount === 0) {
+                helper.textContent = 'You have not explored any scenes yet. Start with Scene 1 below.';
+                startFresh.style.display = '';
+            } else {
+                helper.textContent = 'Click an unlocked scene to enter. The highlighted one is recommended.';
+                startFresh.style.display = 'none';
+
+                const unlockedCards = cards.filter(card => card.classList.contains('unlocked'));
+                if (unlockedCards.length > 0) {
+                    unlockedCards.sort((a, b) => {
+                        const numA = parseInt(a.getAttribute('data-scene').replace('scene', ''));
+                        const numB = parseInt(b.getAttribute('data-scene').replace('scene', ''));
+                        return numA - numB;
+                    });
+                    const lastUnlocked = unlockedCards[unlockedCards.length - 1];
+                    lastUnlocked.classList.add('selected');
+                }
+            }
+
+            // Handle newly unlocked scene highlight (overrides the "last unlocked" highlight)
+            if (highlightScene) {
+                const highlightCard = cards.find(card => card.getAttribute('data-scene') === highlightScene);
+                if (highlightCard && highlightCard.classList.contains('unlocked')) {
+                    cards.forEach(c => c.classList.remove('selected'));
+                    highlightCard.classList.add('selected');
+                    highlightCard.classList.add('newly-unlocked');
+                    highlightCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    helper.textContent = 'New scene unlocked! Click the highlighted scene to enter.';
+                }
+                localStorage.removeItem('pendingSceneHighlight');
+            }
+
+            // Card interactions – direct navigation on click
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    if (card.classList.contains('unlocked')) playHover();
+                });
+                card.addEventListener('click', () => {
+                    if (!card.classList.contains('unlocked')) return;
+                    playClick();
+                    const key = card.getAttribute('data-scene');
+                    localStorage.setItem('loadScene', key);
+                    sessionStorage.setItem('sceneSelected', '1');
+                    window.location.href = './experience.html';
+                });
+            });
+
+            // Start fresh button
+            startFresh.addEventListener('mouseenter', playHover);
+            startFresh.addEventListener('click', () => {
+                playClick();
+                localStorage.setItem('loadScene', 'scene1');
+                sessionStorage.setItem('sceneSelected', '1');
+                window.location.href = './experience.html';
+            });
+        }
+        onAuthStateChanged(auth, async (user) => {
+            // Hide auth loading overlay regardless of outcome
+            const authLoading = document.getElementById('auth-loading');
+            if (authLoading) {
+                authLoading.style.display = 'none';
+            }
+
+            // If not authenticated, redirect to index (login) page
+            if (!user) {
+                console.log('Redirecting to index.html (no user)');
+                window.location.replace('./index.html');
+                return;
+            }
+
+            // Authenticated: fetch saved progress from Firestore and merge with localStorage
+            try {
+                const ref = doc(db, 'users', user.uid);
+                const snap = await getDoc(ref);
+                const data = snap.exists() ? snap.data() : {};
+                const scenesVisited = data.scenesVisited || {};
+                const scenesCompleted = data.scenesCompleted || {};
+
+                // New users should at least have the first scene unlocked
+                const isNewUser = (Object.keys(scenesVisited).length === 0) && (Object.keys(scenesCompleted).length === 0);
+                if (isNewUser) {
+                    scenesVisited.scene1 = true;
+                }
+
+                // Attempt to persist the fetched progress locally as a cache
+                try {
+                    localStorage.setItem('visitedScenes', JSON.stringify(scenesVisited));
+                    localStorage.setItem('completedScenes', JSON.stringify(scenesCompleted));
+                } catch (storageError) {
+                    console.warn('Unable to sync local scene progress with Firebase data:', storageError);
+                }
+
+                // Merge any pre-existing local progress with remote progress (local takes precedence)
+                const highlightScene = localStorage.getItem('pendingSceneHighlight');
+                let mergedVisited = { ...scenesVisited };
+                let mergedCompleted = { ...scenesCompleted };
+                try {
+                    const storedVisited = JSON.parse(localStorage.getItem('visitedScenes') || '{}');
+                    const storedCompleted = JSON.parse(localStorage.getItem('completedScenes') || '{}');
+                    mergedVisited = { ...storedVisited, ...mergedVisited };
+                    mergedCompleted = { ...storedCompleted, ...mergedCompleted };
+                    localStorage.setItem('visitedScenes', JSON.stringify(mergedVisited));
+                    localStorage.setItem('completedScenes', JSON.stringify(mergedCompleted));
+                } catch (storageError) {
+                    console.warn('Unable to sync local scene progress with Firebase data:', storageError);
+                }
+
+                // Initialize the UI with the merged data
+                initializeUI(mergedVisited, mergedCompleted, { highlightScene });
+            } catch (e) {
+                console.error("Error fetching user data:", e);
+                // Fallback: ensure at least Scene 1 is available
+                initializeUI({ scene1: true }, {});
+            }
+        });
+    </script>
+</body>
+</html>

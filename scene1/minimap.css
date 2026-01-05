@@ -1,0 +1,104 @@
+/* minimap.css — Corrected version for new structure */
+
+#minimap-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    height: 250px;
+    background-image: url('/assets/minimap-frame.svg');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+#minimap-container.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#minimap-container #minimap-canvas {
+    width: 175px;
+    height: 175px;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle at center, rgba(4, 38, 203, 0.825) 0%, rgba(7, 55, 7, 0.81) 100%);
+    box-shadow: 0 0 25px rgb(12, 134, 153) inset;
+    z-index: 2;
+}
+
+/* inner grid reflection */
+#minimap-container::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    background:
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.064) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 3px);
+    opacity: 0.2;
+    mix-blend-mode: overlay;
+    z-index: 3;
+}
+
+/* detail ring overlay */
+#minimap-container .detail-ring {
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    border: 1px solid rgb(0, 255, 255);
+    box-shadow: inset 0 0 10px rgb(0, 255, 255);
+    z-index: 4;
+    pointer-events: none;
+}
+
+/* title label */
+#minimap-container #minimap-title {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #00f6ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    pointer-events: none;
+    z-index: 5;
+}
+
+
+/* --- CORRECTED TOGGLE BUTTON --- */
+/* The selector is now just #minimap-toggle because the button is no longer inside the container. */
+/* Its position is calculated to always be centered below the map. */
+#minimap-toggle {
+    position: absolute;
+    top: 240px; /* map top (20px) + map height (250px) + gap (10px) */
+
+    /* This calculation reliably centers the button under the map */
+    left: calc(100vw - 145px); /* Positions left edge at map's center */
+    transform: translateX(-50%);   /* Shifts button left to align its own center */
+
+    background: rgba(0, 40, 60, 0.867);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    color: #00f6ff;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+    transition: all 0.2s ease;
+    z-index: 1001; /* Ensure it's on top of other elements */
+}
+
+#minimap-toggle:hover {
+    background: rgba(0, 80, 100, 0.9);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+}

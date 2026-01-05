@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<!--
+  Full VR Experience shell page.
+  Responsibilities:
+    - Hosts the 3D scene canvas (#scene) and container for overlays (#container)
+    - Provides UX flows for:
+        * Mode selection (VR vs Web)
+        * Character selection
+        * Futuristic loading screen
+    - Adds back-button / unload protection while in-scene
+    - Wires up sound effects for hover and click interactions
+-->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- Allow layout to adapt to different screen sizes and devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VR Experience</title>
+
+
+  <!-- Shared font stack used across overlays (mode/character selection, loader, etc.) -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100..900&family=Lexend:wght@100..900&family=Libertinus+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap%22 rel=stylesheet">
+
+  <!-- Main stylesheet for experience overlays and layout -->
+  <link id="style-link" rel="stylesheet" href="./style.css">
+
+  <!-- Inline styles for layout primitives, mode/character cards, loading UI, etc. -->
+  <style>
+    /* Base layout: full-viewport, hidden overflow for immersive feel */
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      /* Modern, clean sans-serif for body */
+    }
+
+    /* Main WebGL canvas that hosts the 3D VR/WEB scene */
+    #scene {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Generic full-screen overlay container used for selection & loading UIs */
+    .selection-screen {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: auto;
+    }
+
+    /* (Commented out scene selection UI styles – kept for potential reuse) */
+    .scene-select-wrap {
+      max-width: 1100px;
+      width: 100%;
+      padding: 24px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .scene-select-header {
+      text-align: center;
+    }
+
+    .scene-select-header h2 {
+      margin: 0 10px 10px 0;
+      font-weight: 500;
+      letter-spacing: 1px;
+      font-family: 'Poppins', sans-serif;
+      /* Geometric sans-serif for headings, award-winning feel */
+    }
+
+    .scene-select-header p {
+      margin: 0;
+      opacity: 0.8;
+      font-size: 5px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .scenes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      width: 100%;
+    }
+
+    .scene-card {
+      position: relative;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: default;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .scene-card.unlocked {
+      cursor: pointer;
+    }
+
+    .scene-card.unlocked:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(147, 51, 234, .2);
+      border-color: rgba(147, 51, 234, .35);
+    }
+
+    .scene-card.locked {
+      opacity: 0.5;
+    }
+
+    .scene-badge {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .scene-title {
+      font-weight: 500;
+      letter-spacing: .5px;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .lock-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .scene-card.selected {
+      outline: 2px solid #7c3aed;
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+    }
+
+    .scene-select-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .helper {
+      font-size: 12px;
+      opacity: .8;
+      margin-top: 4px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Glassmorphism card used for VR vs Web mode selection */
+    .mode-card {
+      /* No background-image needed */
+      background-image: none;
+
+      /* 1. Semi-transparent background color (glass tint) */
+      background-color: rgba(204, 207, 214, 0.27);
+      /* Black tint, 65% opaque. Adjust as needed */
+
+      /* 2. Backdrop blur effect */
+      backdrop-filter: blur(18px);
+      /* Increased blur again */
+      -webkit-backdrop-filter: blur(18px);
+      /* Safari */
+
+      /* 3. Use the SVG shape as a MASK */
+      mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1041 517' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.95355 277.948L44.4479 318.514C49.5684 324.206 52.4015 331.591 52.4015 339.247V485.979C52.4015 503.1 66.3353 516.979 83.4562 516.979H1009.95C1027.07 516.979 1041 503.1 1041 485.979V138.004C1041 131.738 1039.1 125.619 1035.55 120.454L1002.63 72.5202C996.851 64.1011 987.292 59.0704 977.079 59.0704H696.487C688.149 59.0704 680.163 55.7117 674.331 49.7526L634.761 9.31818C628.918 3.34674 620.911 -0.0130005 612.556 0.000366211L30.9504 0.929993C13.849 0.957336 0 14.8285 0 31.93V257.215C0 264.871 2.83311 272.256 7.95355 277.948Z' fill='black'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1041 517' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.95355 277.948L44.4479 318.514C49.5684 324.206 52.4015 331.591 52.4015 339.247V485.979C52.4015 503.1 66.3353 516.979 83.4562 516.979H1009.95C1027.07 516.979 1041 503.1 1041 485.979V138.004C1041 131.738 1039.1 125.619 1035.55 120.454L1002.63 72.5202C996.851 64.1011 987.292 59.0704 977.079 59.0704H696.487C688.149 59.0704 680.163 55.7117 674.331 49.7526L634.761 9.31818C628.918 3.34674 620.911 -0.0130005 612.556 0.000366211L30.9504 0.929993C13.849 0.957336 0 14.8285 0 31.93V257.215C0 264.871 2.83311 272.256 7.95355 277.948Z' fill='black'/%3E%3C/svg%3E");
+
+      /* Control how the mask is applied */
+      mask-size: 100% 100%;
+      /* Stretch mask SVG to fit element size */
+      mask-position: center;
+      mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
+      -webkit-mask-position: center;
+      -webkit-mask-repeat: no-repeat;
+
+
+
+      /* --- Other styles --- */
+      border: none;
+      padding: 30px 20px;
+      max-width: 600px;
+      height: 320px;
+      width: 90%;
+      text-align: center;
+      gap: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      transform: scale(1.6) translateY(80px);
+      /* Your transform */
+
+      /* Optional shadow - respects the mask */
+      filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.534)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.379));
+
+      /* Clean up */
+      background-size: auto;
+      background-position: initial;
+      background-repeat: initial;
+      border-radius: 0;
+    }
+
+    /* Text positioning adjustments for "CHOOSE EXPERIENCE MODE" heading */
+    .mode-card .mode-header h2 {
+      margin: 0 0 5px 0;
+      /* REDUCED: Less bottom margin for higher position */
+      padding-top: 35px;
+      /* NEW: Top padding inside SVG top curve */
+      font-size: 2.0rem;
+      /* Slightly smaller for fit */
+    }
+
+    .mode-card .mode-header p {
+      font-size: 0.7rem;
+      /* REDUCED: Smaller subtitle */
+      margin: 0 0 15px 0;
+      /* REDUCED: Less bottom margin, closer to buttons */
+      padding-bottom: 5px;
+      /* NEW: Bottom padding to avoid SVG bottom curve */
+    }
+
+    .mode-card .mode-selection {
+      margin-top: -5px;
+      /* Pulls buttons up 15px; increase to -20px for more upward shift */
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      /* Keeps space between buttons */
+    }
+
+    /* Wrapper for Legendium SVG logo – left-aligned inside the mode card */
+    .legendium-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      /* Pushes SVG to left */
+      width: 100%;
+      margin-bottom: 10px;
+      /* Space below SVG before header */
+      margin-left: 40px;
+    }
+
+    .legendium-wrapper img {
+      width: 100px;
+      /* REDUCED: Adjust to 60px for even smaller or 100px for larger */
+      height: auto;
+      /* Maintains aspect ratio */
+      flex-shrink: 0;
+      /* Prevents shrinking */
+    }
+
+    /* Exit Confirmation Modal Styles */
+    #exit-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(11, 11, 12, 0.95);
+      z-index: 10001;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      /* Updated to modern Inter for modal */
+      backdrop-filter: blur(5px);
+    }
+
+    #exit-modal .modal-content {
+      background: rgba(20, 20, 22, 0.9);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f5fef8;
+    }
+
+    #exit-modal h3 {
+      font-size: 1.8rem;
+      margin: 0 0 16px;
+      color: #b5ffcd;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+      /* Elegant heading font */
+    }
+
+    #exit-modal p {
+      margin: 0 0 32px;
+      opacity: 0.85;
+      font-size: 1rem;
+      line-height: 1.5;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #exit-modal .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    #exit-modal .btn-exit {
+      padding: 12px 28px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #exit-modal .btn-exit:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 22px rgba(239, 68, 68, 0.4);
+    }
+
+    #exit-modal .btn-cancel {
+      padding: 12px 28px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: transparent;
+      color: #e6ffee;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #exit-modal .btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: scale(1.05);
+    }
+
+    /* Full-screen container for the futuristic loading overlay */
+    #new-loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      overflow: hidden;
+    }
+
+    /* Background image that matches the current scene being loaded */
+    #new-loading-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
+      filter: brightness(0.8) contrast(1.2);
+    }
+
+    /* Wrapper for the animated loading bar and percentage text */
+    #futuristic-loader {
+      position: absolute;
+      bottom: 80px;
+      /* Same distance from bottom as your original */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      /* Slightly wider for bottom placement – looks balanced */
+      max-width: 900px;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .loader-track {
+      position: relative;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(100, 200, 255, 0.3);
+      box-shadow:
+        inset 0 0 15px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(0, 120, 255, 0.2);
+    }
+
+    #new-loading-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,
+          #00ffff 0%,
+          #00d0ff 30%,
+          #0088ff 70%,
+          #0055ff 100%);
+      border-radius: 6px;
+      transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow:
+        0 0 20px #00ffff,
+        inset 0 0 10px rgba(255, 255, 255, 0.4);
+      position: relative;
+    }
+
+    /* Metallic inner highlight */
+    #new-loading-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 40%;
+      background: linear-gradient(to bottom,
+          rgba(255, 255, 255, 0.6) 0%,
+          rgba(255, 255, 255, 0.1) 100%);
+      border-radius: 6px 6px 0 0;
+    }
+
+    /* Animated glowing edges */
+    .loader-glow {
+      position: absolute;
+      top: -2px;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      background: linear-gradient(90deg,
+          transparent 0%,
+          #00ffff 30%,
+          #0088ff 50%,
+          #00ffff 70%,
+          transparent 100%);
+      border-radius: 8px;
+      opacity: 0;
+      animation: pulseGlow 2.5s infinite;
+      pointer-events: none;
+    }
+
+    /* Moving scanline for sci-fi feel */
+    .loader-scanline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 80px;
+      background: linear-gradient(90deg,
+          transparent,
+          rgba(0, 255, 255, 0.5),
+          transparent);
+      animation: scan 3s linear infinite;
+      pointer-events: none;
+      filter: blur(2px);
+    }
+
+    /* Percentage text - futuristic font style */
+    .loader-label {
+      margin-top: 18px;
+      font-family: 'Poppins', 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 1.4rem;
+      letter-spacing: 4px;
+      color: #00ffff;
+      text-shadow:
+        0 0 10px #00ffff,
+        0 0 20px #00ffff;
+    }
+
+    .new-loading-progress {
+      display: inline-block;
+      min-width: 60px;
+    }
+
+    /* Animations */
+    @keyframes pulseGlow {
+
+      0%,
+      100% {
+        opacity: 0;
+        transform: scaleX(0.9);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: scaleX(1);
+      }
+    }
+
+    @keyframes scan {
+      0% {
+        transform: translateX(-100px);
+      }
+
+      100% {
+        transform: translateX(calc(100% + 100px));
+      }
+    }
+  </style>
+</head>
+
+<!-- Hidden inline SVG used purely as a clipPath/mask definition for the mode card -->
+<svg width="0" height="0" style="position:absolute; top: -1000px; left: -1000px;">
+  <defs>
+    <clipPath id="modeCardShapeClipAccurate">
+      <path
+        d="M7.95355 277.948L44.4479 318.514C49.5684 324.206 52.4015 331.591 52.4015 339.247V485.979C52.4015 503.1 66.3353 516.979 83.4562 516.979H1009.95C1027.07 516.979 1041 503.1 1041 485.979V138.004C1041 131.738 1039.1 125.619 1035.55 120.454L1002.63 72.5202C996.851 64.1011 987.292 59.0704 977.079 59.0704H696.487C688.149 59.0704 680.163 55.7117 674.331 49.7526L634.761 9.31818C628.918 3.34674 620.911 -0.0130005 612.556 0.000366211L30.9504 0.929993C13.849 0.957336 0 14.8285 0 31.93V257.215C0 264.871 2.83311 272.256 7.95355 277.948Z" />
+    </clipPath>
+  </defs>
+</svg>
+
+<body>
+  <!-- Initial script: redirect to scene selection page if user lands here directly -->
+  <script type="module">
+    if (!sessionStorage.getItem('sceneSelected')) {
+      window.location.replace('./scene-select.html');
+    }
+
+    import { setStartScene } from './data.js';
+    import { auth } from './WebFiles/firebase.js';
+    import { initGlobalLogging, logSystemEvent } from './WebFiles/logger.js';
+    import { onAuthStateChanged } from 'firebase/auth';
+
+    // 1. Initialize Global Crash Logging immediately
+    initGlobalLogging();
+
+    const selectedScene = localStorage.getItem('loadScene');
+    if (selectedScene) {
+      setStartScene(selectedScene);
+
+      // Log scene entry once auth is ready
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          logSystemEvent('scene_entry', { scene: selectedScene }, user);
+        }
+      });
+    }
+  </script>
+
+  <!-- Scene Selection Screen (currently commented out; retained for future use) -->
+  <!-- <div id="scene-selection" class="selection-screen" style="display: none;">
+    <div class="scene-select-wrap">
+      <div class="scene-select-header">
+        <h2>Select Scene</h2>
+        <p>Only explored scenes are unlocked. Locked scenes will become available after you explore them.</p>
+      </div>
+      <div id="scenes-grid" class="scenes-grid">
+        <div class="scene-card locked" data-scene="scene1"><div class="scene-badge">Scene 1</div><div class="scene-title">Mystical Forest</div><div class="lock-icon">🔒</div></div>
+        <div class="scene-card locked" data-scene="scene2"><div class="scene-badge">Scene 2</div><div class="scene-title">Futuristic City</div><div class="lock-icon">🔒</div></div>
+        <div class="scene-card locked" data-scene="scene3"><div class="scene-badge">Scene 3</div><div class="scene-title">Robotics University</div><div class="lock-icon">🔒</div></div>
+        <div class="scene-card locked" data-scene="scene4"><div class="scene-badge">Scene 4</div><div class="scene-title">Underground Lab</div><div class="lock-icon">🔒</div></div>
+        <div class="scene-card locked" data-scene="scene5"><div class="scene-badge">Scene 5</div><div class="scene-title">Robotic Assembly</div><div class="lock-icon">🔒</div></div>
+      </div>
+      <div class="scene-select-actions">
+        <button id="proceed-scene-btn" class="btn btn-primary" disabled>Continue</button>
+        <button id="skip-to-default-btn" class="btn btn-secondary" style="display:none;">Start at Scene 1</button>
+      </div>
+      <div id="scene-helper" class="helper"></div>
+    </div>
+  </div> -->
+
+  <!-- Mode Selection Screen: choose between VR headset or Web (desktop) mode -->
+  <div id="mode-selection" class="selection-screen" style="display: none;">
+    <div class="mode-card">
+      <div class="legendium-wrapper">
+        <img src="/WebAssets/LEGENDIUM.svg" alt="Legendium" />
+      </div>
+      <div class="mode-header">
+        <h2>CHOOSE<br>EXPERIENCE MODE</h2>
+      </div>
+      <div class="mode-selection">
+        <button id="vr-mode-button" class="mode-button"><span class="button-text">VR</span></button>
+        <button id="non-vr-mode-button" class="mode-button"><span class="button-text">WEB</span></button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Character Selection Screen: pick a player avatar before starting experience -->
+  <div id="character-selection" class="selection-screen" style="display: none;">
+    <div class="svg-parent-card">
+
+      <div class="legendium-wrapper1">
+        <img src="/WebAssets/LEGENDIUM.svg" alt="Legendium" />
+      </div>
+      <div class="character-cards-section">
+        <div class="character-card" data-character="characters/EMLY 4.glb">
+          <div class="card-image" style="background-image: url('./emily1.jpg');"></div>
+          <div class="card-overlay">
+            <div class="character-info">
+              <h3>EMILY</h3>
+              <span>EXPLORER</span>
+            </div>
+          </div>
+        </div>
+        <div class="character-card" data-character="characters/gopuv5-opt2.glb">
+          <div class="card-image" style="background-image: url('./john.jpg');"></div>
+          <div class="card-overlay">
+            <div class="character-info">
+              <h3>JOHN</h3>
+              <span>TECHNICIAN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="start-section">
+        <button id="start-experience-btn" class="start-button">
+          <span class="button-text">START EXPERIENCE</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- New Futuristic Loading Screen: image + animated progress bar + % label -->
+  <div id="new-loading-screen">
+    <img id="new-loading-image" src="" alt="Loading Scene" />
+
+    <!-- Futuristic Centered Loading Bar (ABOVE the image, near center) -->
+    <div id="futuristic-loader">
+      <div class="loader-track">
+        <div id="new-loading-bar"></div>
+        <div class="loader-glow"></div>
+        <div class="loader-scanline"></div>
+      </div>
+      <div class="loader-label">
+        <span class="new-loading-progress">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exit Confirmation Modal (currently disabled; can be enabled to guard exits) -->
+  <!-- <div id="exit-modal">
+    <div class="modal-content">
+      <h3>Exit Game?</h3>
+      <p>All progress will be lost. Are you sure you want to exit from the game?</p>
+      <div class="modal-actions">
+        <button id="confirm-exit" class="btn-exit">Exit</button>
+        <button id="cancel-exit" class="btn-cancel">Cancel</button>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- Container for any dynamically injected 2D overlays -->
+  <div id="container"></div>
+  <!-- Main Three.js/WebXR canvas; initially hidden until a scene starts -->
+  <canvas id="scene" class="webgl" style="display: none;"></canvas>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script type="module">
+    import { startCharacterSelection } from './characterSelection.js';
+
+    // Bootstraps the character/mode selection flows and global UX behavior.
+    document.addEventListener('DOMContentLoaded', () => {
+      startCharacterSelection();
+
+      // === SOUND SETUP ===
+      const hoverSound = new Audio('/sounds/mouse-hover.mp3');
+      const clickSound = new Audio('/sounds/mouse-click.mp3');
+      const playHover = () => { hoverSound.currentTime = 0; hoverSound.play().catch(() => { }); };
+      const playClick = () => { clickSound.currentTime = 0; clickSound.play().catch(() => { }); };
+
+      // Scene cards: add hover and click sounds when cards are interactive (unlocked).
+      document.querySelectorAll('.scene-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+          if (card.classList.contains('unlocked')) playHover();
+        });
+        card.addEventListener('click', () => {
+          if (card.classList.contains('unlocked')) playClick();
+        });
+      });
+
+      // All buttons except the fixed non-VR button share standard hover/click sounds.
+      document.querySelectorAll('button:not(#non-vr-mode-button)').forEach(btn => {
+        btn.addEventListener('mouseenter', playHover);
+        btn.addEventListener('click', playClick);
+      });
+
+      // === FIXED NON-VR BUTTON ===
+      const nonVrButton = document.querySelector('#non-vr-mode-button');
+      let isNonVrProcessing = false;
+
+      nonVrButton.addEventListener('mouseenter', playHover);
+      nonVrButton.addEventListener('click', () => {
+        if (isNonVrProcessing) return; // prevent multiple clicks
+        isNonVrProcessing = true;
+        nonVrButton.disabled = true;
+        playClick();
+
+        try {
+          startCharacterSelection('non-vr');
+        } catch (error) {
+          console.error('Error in Non VR mode:', error);
+          // Reset flag only if there was an error launching Non VR mode.
+          isNonVrProcessing = false;
+          nonVrButton.disabled = false;
+        }
+      });
+
+      // Character cards: also get hover and click sound feedback.
+      document.querySelectorAll('.character-card').forEach(card => {
+        card.addEventListener('mouseenter', playHover);
+        card.addEventListener('click', playClick);
+      });
+
+      // === BACK BUTTON PROTECTION (EXIT MODAL) ===
+      let inSceneStatePushed = false;
+
+      // Improved auto-detection for scene load: checks DOM state to know when
+      // the user is fully in-scene (all overlays hidden and canvas visible).
+      const checkSceneLoaded = () => {
+        const sceneSel = document.getElementById('scene-selection');
+        const modeSel = document.getElementById('mode-selection');
+        const charSel = document.getElementById('character-selection');
+        const loadingScreen = document.getElementById('new-loading-screen');
+        const sceneCanvas = document.getElementById('scene');
+
+        const allHidden = (
+          (!sceneSel || sceneSel.style.display === 'none' || !sceneSel.style.display) &&
+          (!modeSel || modeSel.style.display === 'none' || !modeSel.style.display) &&
+          (!charSel || charSel.style.display === 'none' || !charSel.style.display) &&
+          (!loadingScreen || loadingScreen.style.display === 'none' || !loadingScreen.style.display)
+        );
+        const canvasVisible = sceneCanvas && sceneCanvas.style.display !== 'none' && sceneCanvas.style.display !== '';
+
+        if (allHidden && canvasVisible) {
+          if (!inSceneStatePushed) {
+            window.history.pushState({ inScene: true }, '', window.location.href);
+            inSceneStatePushed = true;
+            console.log('Scene protection state pushed automatically');
+          }
+          return true;
+        }
+        return false;
+      };
+
+      // Poll every 200ms for faster detection
+      const intervalId = setInterval(() => {
+        if (checkSceneLoaded()) {
+          clearInterval(intervalId);
+        }
+      }, 200);
+
+      // Check immediately and on load
+      window.addEventListener('load', checkSceneLoaded);
+      setTimeout(checkSceneLoaded, 100);
+
+      // Fallback: Listen for first click in scene to ensure user interaction and push state
+      document.addEventListener('click', () => {
+        if (!inSceneStatePushed && checkSceneLoaded()) {
+          window.history.pushState({ inScene: true }, '', window.location.href);
+          inSceneStatePushed = true;
+          console.log('Scene protection state pushed on click'); // Debug
+        }
+      }, { once: true });
+
+      // Popstate listener for back button
+      window.addEventListener('popstate', (event) => {
+        console.log('Popstate fired with state:', event.state); // Debug: Check if this logs on back
+        if (event.state && event.state.inScene) {
+          // document.getElementById('exit-modal').style.display = 'flex';
+          // Re-push to block navigation
+          const newUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + window.location.search + window.location.hash;
+          window.history.pushState({ inScene: true }, '', newUrl);
+          console.log('Back button intercepted and blocked'); // Debug
+        }
+      });
+
+      // Fallback for Chrome issues: Browser's native confirmation on unload/back (shows standard dialog)
+      window.addEventListener('beforeunload', (e) => {
+        if (inSceneStatePushed) {
+          e.preventDefault();
+          e.returnValue = 'All progress will be lost. Are you sure you want to exit from the game?';
+        }
+      });
+
+
+      // Prevent accidental Escape/Enter key handling when not in full-screen.
+      window.addEventListener('keydown', (e) => {
+
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          if (!document.fullscreenElement) {
+            e.preventDefault();
+            e.stopPropagation();
+          } else {
+            console.log("solved");
+          }
+        }
+
+        if (e.key === 'Enter') {
+          if (!document.fullscreenElement) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+
+        }
+
+      }, true);
+    });
+  </script>
+
+</body>
+
+</html>

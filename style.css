@@ -1,0 +1,629 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Libertinus+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/neotrax');
+*
+{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body
+{
+    overflow: hidden;
+    font-family:  "neotrax", sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+    background-size: cover;
+}
+
+.webgl
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    outline: none;
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+}
+
+.selection-screen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 10000;
+    overflow-y: auto;
+    padding: 40px;
+    animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0);
+    }
+}
+
+#mode-selection {
+    margin: 0;
+    font-family: "neotrax", sans-serif;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #f5fef8;
+  
+    /* 1. Add position: relative */
+    /* This is crucial for the absolute-positioned ::before overlay */
+    position: relative;
+  
+    background-image: url('/covervr7.jpg');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+  }
+  
+  #mode-selection::before {
+    content: '';
+    position: absolute;
+  
+    /* 2. Cover the entire element */
+    top: 0;
+    left: 0;
+    right: 0; /* <-- Corrected from 10 */
+    bottom: 0;
+  
+    /* 3. Use 'background', not 'background-color' for a gradient */
+    /* background: linear-gradient(135deg, rgb(0, 0, 0) 0%, rgba(1, 10, 16, 0.3) 100%); */
+  
+    /* * 4. Set z-index to 0 (or 1)
+     * This places the overlay on top of the background image.
+     * Your content (buttons, text) will need a higher z-index (like 2)
+     * to appear on top of this overlay.
+    */
+    z-index: 0;
+  }
+  
+  /* * IMPORTANT: Any content inside #mode-selection (like text or buttons)
+   * will need its own z-index to appear ON TOP of the overlay.
+   *
+   * For example:
+   * .your-content-wrapper {
+   * position: relative;
+   * z-index: 1;
+   * }
+  */
+
+
+
+.mode-selection {
+    display: flex;
+    gap: 80px;
+    justify-content: center;
+    align-items: center;
+}
+
+
+  .mode-button {
+    padding: 1rem 2.5rem; /* FIXED: Single value for padding (adjust '1rem' for height, '2.5rem' for width) */
+    font-size: 0.5rem; /* FIXED: Single value for font size (increase to 1.4rem for larger  text) */
+    font-weight: 200;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    border: 0.2px solid rgb(134, 131, 131);
+    border-radius: 10px;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "neotrax", sans-serif;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 2px;
+    
+    /* FIXED: Explicit size adjustments with single values */
+    max-width: 180px; /* Single value for min width (increase to 220px for wider buttons) */
+    max-height: 40px; /* Single value for min height (increase to 60px for taller buttons) */
+
+    width: auto; /* Allows growth beyond min-width based on content */
+    height: auto; /* Lets padding control height; or set 'height: 50px;' for fixed */
+  }
+
+  .mode-button:hover {
+    background: linear-gradient(
+        135deg,
+        #00070a 0%, /* Reverse the gradient for hover effect */
+        #202222 100%
+    );
+    transform: translateY(-2px); /* FIXED: Use whole-pixel value (-2px) for smoother movement; avoids subpixel jitter/vibration */
+    box-shadow: 
+        0 8px 25px rgba(5, 3, 48, 0.4), /* Enhanced purple-ish glow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    /* NEW: Pulsing glow animation without text color change */
+
+    /* NEW: Subtle inner ripple effect using pseudo-element */
+    position: relative;
+    color: #ffffff;
+    border: 0.2px solid rgb(0, 0, 0);
+    
+    /* FIXED: Prevent vibration/jitter on transform */
+    backface-visibility: hidden; /* NEW: GPU acceleration for smoother hover; reduces text render artifacts */
+    will-change: transform; /* NEW: Hints browser to optimize for transform changes */
+}
+
+/* FIXED: Ensure text doesn't vibrate - Stabilize child text */
+.button-text {
+    font-family: "neotrax", sans-serif;
+    font-size: 1.0rem;
+    font-weight: 400;
+    backface-visibility: hidden; /* NEW: Apply to text for extra stability during parent transform */
+    transform: translateZ(0); /* NEW: Force hardware acceleration on text layer */
+}
+/* Character Selection Styles - Simplified Black Card Layout */
+#character-selection {
+    background-image: url('/covervr2.png');
+    background-size: cover;
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Removed overall black overlay */
+
+.legendium-wrapper1 {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Pushes SVG to left */
+    width: 100%;
+    margin-bottom: 25px; /* Space below SVG before header */
+    margin-left: 40px;
+  }
+  
+  .legendium-wrapper1 img {
+    width: 110px; /* REDUCED: Adjust to 60px for even smaller or 100px for larger */
+    height: auto; /* Maintains aspect ratio */
+    flex-shrink: 0; /* Prevents shrinking */
+  }
+
+.svg-parent-card {
+    /* No background-image */
+    background-image: none;
+
+    /* 1. Background color (tint) */
+    background-color: rgba(123, 156, 248, 0.151); /* Adjust tint/opacity */
+
+    /* 2. Backdrop blur */
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    /* 3. Apply the MASK using the CORRECT SVG data */
+    mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1041 675' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.95355 277.948L44.4479 318.514C49.5684 324.206 52.4015 331.591 52.4015 339.247V643.979C52.4015 661.1 66.3353 674.979 83.4562 674.979H1009.95C1027.07 674.979 1041 661.1 1041 643.98V138.004C1041 131.738 1039.1 125.619 1035.55 120.454L1002.63 72.5201C996.851 64.1011 987.293 59.0704 977.079 59.0704H696.487C688.149 59.0704 680.163 55.7117 674.331 49.7526L634.761 9.31818C628.918 3.34674 620.911 -0.0130005 612.556 0.000366211L30.9504 0.929993C13.849 0.957336 0 14.8285 0 31.93V257.215C0 264.871 2.83311 272.256 7.95355 277.948Z' fill='black'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1041 675' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.95355 277.948L44.4479 318.514C49.5684 324.206 52.4015 331.591 52.4015 339.247V643.979C52.4015 661.1 66.3353 674.979 83.4562 674.979H1009.95C1027.07 674.979 1041 661.1 1041 643.98V138.004C1041 131.738 1039.1 125.619 1035.55 120.454L1002.63 72.5201C996.851 64.1011 987.293 59.0704 977.079 59.0704H696.487C688.149 59.0704 680.163 55.7117 674.331 49.7526L634.761 9.31818C628.918 3.34674 620.911 -0.0130005 612.556 0.000366211L30.9504 0.929993C13.849 0.957336 0 14.8285 0 31.93V257.215C0 264.871 2.83311 272.256 7.95355 277.948Z' fill='black'/%3E%3C/svg%3E");
+
+    /* Mask sizing */
+    mask-size: cover;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: cover;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+
+    /* --- Other styles --- */
+    border: none;
+    border-radius: 0;
+    padding: 2rem; /* Keep padding */
+    width: 90vw;
+    max-width: 680px;
+    height: auto;
+    min-height: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Keep centered */
+
+    /* ADJUSTED GAP - Keep a smaller base gap, let margin do the heavy lifting */
+    gap: 1rem; /* Reduced from 1.5rem or 2.5rem */
+
+    /* Optional: Drop shadow */
+    filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.5));
+
+    position: relative;
+
+    /* Overall Scaling and Positioning */
+    transform: scale(1.2) translateY(60px);
+    transform-origin: center center;
+}
+
+/* Optional: Add hover effect to scale slightly more */
+/* .svg-parent-card:hover {
+    transform: scale(1.25);
+} */
+.character-cards-section {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    width: 100%;
+}
+
+.character-card {
+    position: relative;
+    /* REDUCED SIZE */
+    width: 150px; /* Example: Reduced from 200px */
+    height: 200px; /* Example: Reduced from 300px (maintaining aspect ratio) */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.character-card .card-image {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    /* Black card background wrapping the image */
+    position: relative;
+}
+
+.character-card .card-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    padding: 1rem;
+    z-index: 2;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.character-card:hover .card-overlay,
+.character-card.active .card-overlay {
+    transform: translateY(0);
+}
+
+.character-info {
+    text-align: center;
+    z-index: 3;
+    color: #ffffff;
+}
+
+.character-info h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.character-info span {
+    font-size: 0.9rem;
+    color: #00ffff;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.character-card:hover {
+    transform: scale(1.05);
+}
+
+.character-card.active {
+    outline: 2px solid #ffffff;
+    transform: scale(1.05);
+}
+
+.start-button {
+    /* ADJUSTED PADDING & SIZING */
+    padding: 1.2rem 3rem;   /* Slightly taller and wider padding */
+    font-size: 1.1rem;      /* Base font size (though overridden by .button-text) */
+    max-width: 250px;     /* Slightly wider max width */
+    max-height: 65px;    /* Slightly taller max height */
+    /* --- END ADJUSTMENTS --- */
+
+    font-weight: 200; /* Keep existing font-weight */
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    border: 2px solid rgb(250, 250, 250);
+    border-radius: 15px; /* Keep border-radius */
+    color: #090101;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "neotrax", sans-serif;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* Keep gap */
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 2px; /* Keep letter-spacing */
+    margin-top: 2rem;
+    width: auto;
+    height: auto;
+}
+
+/* Also adjust the text size inside the button if needed */
+.start-button .button-text {
+    font-family: "neotrax", sans-serif;
+    /* ADJUSTED FONT SIZE */
+    font-size: 1.1rem; /* Slightly larger text */
+    /* --- END ADJUSTMENT --- */
+    font-weight: 700;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* Keep hover styles as they are */
+.start-button:hover {
+    background: linear-gradient(
+        135deg,
+        #00070a 0%, /* Reverse the gradient for hover effect */
+        #1a1a1a 100%
+    );
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 25px rgba(56, 56, 56, 0.564), /* Enhanced purple-ish glow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    position: relative;
+    color: #ffffff;
+    border: 0.2px solid rgb(0, 0, 0);
+    backface-visibility: hidden;
+    will-change: transform;
+}
+.button-text {
+    display: inline-block;
+}
+/* UPDATED: Increase space between h2 header and buttons */
+.mode-header {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 20px; /* NEW: Adds 40px space below header (increase to 50px for more, or 30px for less) */
+  }
+  
+  .mode-header h2 {
+    font-size: 1.6rem;
+    font-weight: 500;
+color: #ffffff;
+    letter-spacing: 2px;
+    
+    /* Your original silver metallic fill */
+    background: linear-gradient(45deg, #f7f7f7d7, #ffffff);
+
+    background-clip: text;
+    
+    margin-bottom: 0;
+  
+    /* --- Added for Silver Stroke & Glow --- */
+    
+    /* 1. Silver Stroke */
+    /* This adds a 1px silver border to the text itself. */
+    /* Note: -webkit-text-stroke is non-standard but widely supported. */
+    -webkit-text-stroke: 0.5px #bff5f8; 
+  
+    /* 2. Silver/White Glow */
+    /* This adds a 10px white shadow, creating a "glow" effect. */
+    text-shadow: 0 0 10px #ffffff34;
+  }
+
+
+
+.mode-selection {
+    display: flex;
+    gap: 80px;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+
+
+/* Loading Screen Styles */
+#loading-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 100%);
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.stars, .twinkling {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.stars {
+    background: #000 url('https://i.imgur.com/YKY28eT.png') repeat top center;
+    z-index: -2;
+}
+
+.twinkling {
+    background: transparent url('https://i.imgur.com/XYMF4ca.png') repeat top center;
+    z-index: -1;
+    animation: move-twink-back 200s linear infinite;
+}
+
+@keyframes move-twink-back {
+    from {background-position: 0 0;}
+    to {background-position: -10000px 5000px;}
+}
+
+#loading-text {
+    font-size: 2.5rem;
+    margin-bottom: 60px;
+    color: #ffffff;
+    font-weight: 900;
+    letter-spacing: 2px;
+    font-family:"neotrax", sans-serif;
+    text-transform: uppercase;
+    text-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+    background: linear-gradient(45deg, #ffffff, #00ffff, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#loading-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+}
+
+.circle-outer, .circle-middle, .circle-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    border-top-color: #00ffff;
+    border-bottom-color: #0080ff;
+}
+
+.circle-outer {
+    width: 250px;
+    height: 250px;
+    animation: spin 4s linear infinite;
+}
+
+.circle-middle {
+    width: 200px;
+    height: 200px;
+    animation: spin 3s linear infinite reverse;
+}
+
+.circle-inner {
+    width: 150px;
+    height: 150px;
+    animation: spin 2s linear infinite;
+}
+
+.loading-progress {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 900;
+    color: #00ffff;
+    font-family:  "neotrax", sans-serif;
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .container {
+        flex-direction: column;
+        height: auto;
+        gap: 3rem;
+    }
+    
+    .agent-list {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 3rem;
+    }
+    
+    .agent-card {
+        width: 110px;
+        height: 110px;
+    }
+    
+    .model-section {
+        width: 100%;
+        height: 600px;
+    }
+    
+    model-viewer {
+        width: 100%;
+        height: 100%;
+        transform: scale(1.1);
+    }
+    
+    .detail-card {
+        width: 100%;
+        border-left: none;
+        border-top: 6px solid #00ffff;
+        clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+    }
+}
+
+@media (max-width: 768px) {
+    .mode-selection {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .agent-card {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .detail-card h1 {
+        font-size: 3.2rem;
+    }
+    
+    .mode-header h2 {
+        font-size: 3.5rem;
+    }
+    
+    .start-button {
+        padding: 1.5rem 3rem;
+        font-size: 1.3rem;
+    }
+}
